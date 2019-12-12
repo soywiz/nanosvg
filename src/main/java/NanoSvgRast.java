@@ -27,6 +27,9 @@ public class NanoSvgRast {
      *
      */
 
+    static public final float NSVG_PI = (3.14159265358979323846264338327f);
+
+
     static public final int NSVG__SUBSAMPLES	= 5;
     static public final int NSVG__FIXSHIFT		= 10;
     static public final int NSVG__FIX			= (1 << NSVG__FIXSHIFT);
@@ -180,6 +183,12 @@ public class NanoSvgRast {
         float len = 0f;
         float dmx = 0f, dmy = 0f;
         int flags = 0;
+        public NSVGpoint() {
+        }
+        public NSVGpoint(float x, float y) {
+            this.x = x;
+            this.y = y;
+        }
     }
 
     static public class NSVGactiveEdge {
@@ -209,24 +218,24 @@ public class NanoSvgRast {
         float tessTol;
         float distTol;
 
-        NSVGedge[] edges;
-        int nedges;
-        int cedges;
+        NSVGedge[] edges = new NSVGedge[0];
+        int nedges = 0;
+        int cedges = 0;
 
-        NSVGpoint[] points;
-        int npoints;
-        int cpoints;
+        NSVGpoint[] points = new NSVGpoint[0];
+        int npoints = 0;
+        int cpoints = 0;
 
-        NSVGpoint[] points2;
-        int npoints2;
-        int cpoints2;
+        NSVGpoint[] points2 = new NSVGpoint[0];
+        int npoints2 = 0;
+        int cpoints2 = 0;
 
         NSVGactiveEdge freelist;
         NSVGmemPage pages;
         NSVGmemPage curpage;
 
-        byte[] scanline;
-        int cscanline;
+        byte[] scanline = new byte[0];
+        int cscanline = 0;
 
         byte[] bitmap;
         int width, height, stride;
@@ -246,7 +255,7 @@ public class NanoSvgRast {
 */
 
     // Allocated rasterizer context.
-    NSVGrasterizer nsvgCreateRasterizer()
+    public NSVGrasterizer nsvgCreateRasterizer()
     {
         NSVGrasterizer r = new NSVGrasterizer();
         r.tessTol = 0.25f;
@@ -255,7 +264,7 @@ public class NanoSvgRast {
     }
 
     // Deletes rasterizer context.
-    void nsvgDeleteRasterizer(NSVGrasterizer r)
+    public void nsvgDeleteRasterizer(NSVGrasterizer r)
     {
         NSVGmemPage p;
 
@@ -278,7 +287,7 @@ public class NanoSvgRast {
         r = null;
     }
 
-    static NSVGmemPage nsvg__nextPage(NSVGrasterizer r, NSVGmemPage cur)
+    public NSVGmemPage nsvg__nextPage(NSVGrasterizer r, NSVGmemPage cur)
     {
         // If using existing chain, return the next page in chain
         if (cur != null && cur.next != null) {
@@ -297,7 +306,7 @@ public class NanoSvgRast {
         return newp;
     }
 
-    static void nsvg__resetPool(NSVGrasterizer r)
+    public void nsvg__resetPool(NSVGrasterizer r)
     {
         NSVGmemPage p = r.pages;
         while (p != null) {
@@ -319,14 +328,14 @@ public class NanoSvgRast {
     //    return buf;
     //}
 
-    static boolean nsvg__ptEquals(float x1, float y1, float x2, float y2, float tol)
+    public boolean nsvg__ptEquals(float x1, float y1, float x2, float y2, float tol)
     {
         float dx = x2 - x1;
         float dy = y2 - y1;
         return dx*dx + dy*dy < tol*tol;
     }
 
-    static void nsvg__addPathPoint(NSVGrasterizer r, float x, float y, int flags)
+    public void nsvg__addPathPoint(NSVGrasterizer r, float x, float y, int flags)
     {
         NSVGpoint pt;
 
@@ -351,7 +360,7 @@ public class NanoSvgRast {
         r.npoints++;
     }
 
-    static void nsvg__appendPathPoint(NSVGrasterizer r, NSVGpoint pt)
+    public void nsvg__appendPathPoint(NSVGrasterizer r, NSVGpoint pt)
     {
         if (r.npoints+1 > r.cpoints) {
             r.cpoints = r.cpoints > 0 ? r.cpoints * 2 : 64;
@@ -362,7 +371,7 @@ public class NanoSvgRast {
         r.npoints++;
     }
 
-    static void nsvg__duplicatePoints(NSVGrasterizer r)
+    public void nsvg__duplicatePoints(NSVGrasterizer r)
     {
         if (r.npoints > r.cpoints2) {
             r.cpoints2 = r.npoints;
@@ -373,7 +382,16 @@ public class NanoSvgRast {
         r.npoints2 = r.npoints;
     }
 
-    static void nsvg__addEdge(NSVGrasterizer r, float x0, float y0, float x1, float y1)
+    static private NSVGedge[] realloc(NSVGedge[] items, int size) {
+        int pos = (items != null) ? items.length : 0;
+        NSVGedge[] out = (items != null) ? Arrays.copyOf(items, size) : new NSVGedge[size];
+        for (int n = pos; n < size; n++) {
+            out[n] = new NSVGedge();
+        }
+        return out;
+    }
+
+    public void nsvg__addEdge(NSVGrasterizer r, float x0, float y0, float x1, float y1)
     {
         NSVGedge e;
 
@@ -383,8 +401,7 @@ public class NanoSvgRast {
 
         if (r.nedges+1 > r.cedges) {
             r.cedges = r.cedges > 0 ? r.cedges * 2 : 64;
-            r.edges = Arrays.copyOf(r.edges, r.cedges);
-            if (r.edges == null) return;
+            r.edges = realloc(r.edges, r.cedges);
         }
 
         e = r.edges[r.nedges];
@@ -395,7 +412,7 @@ public class NanoSvgRast {
             e.y0 = y0;
             e.x1 = x1;
             e.y1 = y1;
-            e.dir = 1;
+            e.dir = +1;
         } else {
             e.x0 = x1;
             e.y0 = y1;
@@ -416,12 +433,11 @@ public class NanoSvgRast {
     //    return d;
     //}
 
-    // @TODO: This is not thread safe!
-    static  float normalX = 0f;
-    static  float normalY = 0f;
-    static  float normalD = 0f;
+    float normalX = 0f;
+    float normalY = 0f;
+    float normalD = 0f;
 
-    static float nsvg__normalizeXY(float x, float y, int index)
+    public float nsvg__normalizeXY(float x, float y, int index)
     {
         float d = sqrtf((x)*(x) + (y)*(y));
         if (d > 1e-6f) {
@@ -435,24 +451,24 @@ public class NanoSvgRast {
         if (index == -1) return d;
         return (index == 0) ? x : y;
     }
-    static float nsvg__normalizeD(float x, float y)
+    public float nsvg__normalizeD(float x, float y)
     {
         return nsvg__normalizeXY(x, y, -1);
     }
 
-    static float nsvg__normalizeX(float x, float y)
+    public float nsvg__normalizeX(float x, float y)
     {
         return nsvg__normalizeXY(x, y, 0);
     }
 
-    static float nsvg__normalizeY(float x, float y)
+    public float nsvg__normalizeY(float x, float y)
     {
         return nsvg__normalizeXY(x, y, 1);
     }
 
-    static float nsvg__absf(float x) { return x < 0 ? -x : x; }
+    public float nsvg__absf(float x) { return x < 0 ? -x : x; }
 
-    static void nsvg__flattenCubicBez(
+    public void nsvg__flattenCubicBez(
         NSVGrasterizer r,
         float x1, float y1, float x2, float y2,
         float x3, float y3, float x4, float y4,
@@ -491,7 +507,7 @@ public class NanoSvgRast {
         nsvg__flattenCubicBez(r, x1234,y1234, x234,y234, x34,y34, x4,y4, level+1, type);
     }
 
-    static void nsvg__flattenShape(NSVGrasterizer r, NSVGshape shape, float scale)
+    public void nsvg__flattenShape(NSVGrasterizer r, NSVGshape shape, float scale)
     {
         int i, j;
         NSVGpath path;
@@ -513,7 +529,7 @@ public class NanoSvgRast {
         }
     }
 
-    static void nsvg__initClosed(NSVGpoint left, NSVGpoint right, NSVGpoint p0, NSVGpoint p1, float lineWidth)
+    public void nsvg__initClosed(NSVGpoint left, NSVGpoint right, NSVGpoint p0, NSVGpoint p1, float lineWidth)
     {
         float w = lineWidth * 0.5f;
         float dx = p1.x - p0.x;
@@ -529,7 +545,7 @@ public class NanoSvgRast {
         right.x = rx; right.y = ry;
     }
 
-    static void nsvg__buttCap(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p, float dx, float dy, float lineWidth, boolean connect)
+    public void nsvg__buttCap(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p, float dx, float dy, float lineWidth, boolean connect)
     {
         float w = lineWidth * 0.5f;
         float px = p.x, py = p.y;
@@ -547,7 +563,7 @@ public class NanoSvgRast {
         right.x = rx; right.y = ry;
     }
 
-    static void nsvg__squareCap(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p, float dx, float dy, float lineWidth, boolean connect)
+    public void nsvg__squareCap(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p, float dx, float dy, float lineWidth, boolean connect)
     {
         float w = lineWidth * 0.5f;
         float px = p.x - dx*w, py = p.y - dy*w;
@@ -565,9 +581,7 @@ public class NanoSvgRast {
         right.x = rx; right.y = ry;
     }
 
-    static public final float NSVG_PI = (3.14159265358979323846264338327f);
-
-    static void nsvg__roundCap(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p, float dx, float dy, float lineWidth, int ncap, boolean connect)
+    public void nsvg__roundCap(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p, float dx, float dy, float lineWidth, int ncap, boolean connect)
     {
         int i;
         float w = lineWidth * 0.5f;
@@ -603,7 +617,7 @@ public class NanoSvgRast {
         right.x = rx; right.y = ry;
     }
 
-    static void nsvg__bevelJoin(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p0, NSVGpoint p1, float lineWidth)
+    public void nsvg__bevelJoin(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p0, NSVGpoint p1, float lineWidth)
     {
         float w = lineWidth * 0.5f;
         float dlx0 = p0.dy, dly0 = -p0.dx;
@@ -623,7 +637,7 @@ public class NanoSvgRast {
         right.x = rx1; right.y = ry1;
     }
 
-    static void nsvg__miterJoin(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p0, NSVGpoint p1, float lineWidth)
+    public void nsvg__miterJoin(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p0, NSVGpoint p1, float lineWidth)
     {
         float w = lineWidth * 0.5f;
         float dlx0 = p0.dy, dly0 = -p0.dx;
@@ -690,7 +704,7 @@ public class NanoSvgRast {
         return (float)Math.sin(a);
     }
 
-    static void nsvg__roundJoin(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p0, NSVGpoint p1, float lineWidth, int ncap)
+    public void nsvg__roundJoin(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p0, NSVGpoint p1, float lineWidth, int ncap)
     {
         int i, n;
         float w = lineWidth * 0.5f;
@@ -731,7 +745,7 @@ public class NanoSvgRast {
         right.x = rx; right.y = ry;
     }
 
-    static void nsvg__straightJoin(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p1, float lineWidth)
+    public void nsvg__straightJoin(NSVGrasterizer r, NSVGpoint left, NSVGpoint right, NSVGpoint p1, float lineWidth)
     {
         float w = lineWidth * 0.5f;
         float lx = p1.x - (p1.dmx * w), ly = p1.y - (p1.dmy * w);
@@ -753,7 +767,7 @@ public class NanoSvgRast {
     }
 
 
-    static void nsvg__expandStroke(NSVGrasterizer r, NSVGpoint[] points, int npoints, boolean closed, int lineJoin, int lineCap, float lineWidth)
+    public void nsvg__expandStroke(NSVGrasterizer r, NSVGpoint[] points, int npoints, boolean closed, int lineJoin, int lineCap, float lineWidth)
     {
         int ncap = nsvg__curveDivs(lineWidth*0.5f, NSVG_PI, r.tessTol);	// Calculate divisions per half circle.
         NSVGpoint left = new NSVGpoint();
@@ -832,7 +846,7 @@ public class NanoSvgRast {
         }
     }
 
-    static void nsvg__prepareStroke(NSVGrasterizer r, float miterLimit, int lineJoin)
+    public void nsvg__prepareStroke(NSVGrasterizer r, float miterLimit, int lineJoin)
     {
         int i, j;
         int p0, p1;
@@ -893,7 +907,7 @@ public class NanoSvgRast {
         }
     }
 
-    static void nsvg__flattenShapeStroke(NSVGrasterizer r, NSVGshape shape, float scale)
+    public void nsvg__flattenShapeStroke(NSVGrasterizer r, NSVGshape shape, float scale)
     {
         int i, j;
         boolean closed;
@@ -1047,13 +1061,13 @@ public class NanoSvgRast {
         return z;
     }
 
-    static void nsvg__freeActive(NSVGrasterizer r, NSVGactiveEdge z)
+    public void nsvg__freeActive(NSVGrasterizer r, NSVGactiveEdge z)
     {
         z.next = r.freelist;
         r.freelist = z;
     }
 
-    static void nsvg__fillScanline(byte[] scanline, int len, int x0, int x1, int maxWeight, int[] xmin, int[] xmax)
+    public void nsvg__fillScanline(byte[] scanline, int len, int x0, int x1, int maxWeight, int[] xmin, int[] xmax)
     {
         int i = x0 >> NSVG__FIXSHIFT;
         int j = x1 >> NSVG__FIXSHIFT;
@@ -1083,7 +1097,7 @@ public class NanoSvgRast {
     // note: this routine clips fills that extend off the edges... ideally this
 // wouldn't happen, but it could happen if the truetype glyph bounding boxes
 // are wrong, or if the user supplies a too-small bitmap
-    static void nsvg__fillActiveEdges(
+    public void nsvg__fillActiveEdges(
             byte[] scanline, int len, NSVGactiveEdge e, int maxWeight,
             int[] xmin,
             int[] xmax,
@@ -1154,7 +1168,7 @@ public class NanoSvgRast {
         return ((x+1) * 257) >> 16;
     }
 
-    static void nsvg__scanlineSolid(
+    public void nsvg__scanlineSolid(
         byte[] dst,
         int dstPos,
         int count,
@@ -1291,7 +1305,7 @@ public class NanoSvgRast {
         }
     }
 
-    static void nsvg__rasterizeSortedEdges(NSVGrasterizer r, float tx, float ty, float scale, NSVGcachedPaint cache, int fillRule)
+    public void nsvg__rasterizeSortedEdges(NSVGrasterizer r, float tx, float ty, float scale, NSVGcachedPaint cache, int fillRule)
     {
         NSVGactiveEdge active = null;
         int y, s;
@@ -1388,7 +1402,7 @@ public class NanoSvgRast {
 
     }
 
-    static void nsvg__unpremultiplyAlpha(byte[] image, int w, int h, int stride)
+    public void nsvg__unpremultiplyAlpha(byte[] image, int w, int h, int stride)
     {
         int x,y;
 
@@ -1450,7 +1464,7 @@ public class NanoSvgRast {
     }
 
 
-    static void nsvg__initPaint(NSVGcachedPaint cache, NSVGpaint paint, float opacity)
+    public void nsvg__initPaint(NSVGcachedPaint cache, NSVGpaint paint, float opacity)
     {
         int i, j;
         NSVGgradient grad;
@@ -1511,7 +1525,7 @@ public class NanoSvgRast {
     }
 
 /*
-static void dumpEdges(NSVGrasterizer r, const char* name)
+public void dumpEdges(NSVGrasterizer r, const char* name)
 {
 	float xmin = 0, xmax = 0, ymin = 0, ymax = 0;
 	NSVGedge *e = null;
@@ -1571,7 +1585,6 @@ static void dumpEdges(NSVGrasterizer r, const char* name)
         if (w > r.cscanline) {
             r.cscanline = w;
             r.scanline = Arrays.copyOf(r.scanline, w);
-            if (r.scanline == null) return;
         }
 
         for (i = 0; i < h; i++)
