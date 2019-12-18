@@ -1900,6 +1900,20 @@ interface ParseElementStartCb {
 		(*endelCb)(ud, name);
 }
 
+static class MiniStrReader {
+    public String str;
+    public int pos = 0;
+
+    public MiniStrReader(String str) {
+        this.str = str;
+    }
+
+    public char peek() {
+        if (pos >= str.length()) return '\u0000';
+        return this.str.charAt(pos);
+    }
+}
+
 int nsvg__parseXML(
     String input,
     ParseElementStartCb startelCb,
@@ -1907,11 +1921,11 @@ int nsvg__parseXML(
     ParseElementContentCb contentCb,
     Object ud
 )  {
-	String s = input;
-    String mark = s;
+    MiniStrReader s = new MiniStrReader(input);
+    int mark = s.pos;
 	int state = NSVG_XML_CONTENT;
-	while (*s) {
-		if (*s == '<' && state == NSVG_XML_CONTENT) {
+	while (s.peek() != '\u0000') {
+		if (s.peek() == '<' && state == NSVG_XML_CONTENT) {
 			// Start of a tag
 			*s++ = '\0';
 			nsvg__parseContent(mark, contentCb, ud);
