@@ -1,5 +1,4 @@
 import org.junit.*
-import java.util.*
 
 class NanoSvgRastTest {
     @Test
